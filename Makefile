@@ -60,10 +60,9 @@ clean:
 
 # Env
 venv: venv/pyvenv.cfg
-venv/pyvenv.cfg: requirements.txt
+venv/pyvenv.cfg: pyproject.toml
 	python3 -m venv ./venv
-	${VPYTHON} -m pip install -r requirements.txt
-	${VPYTHON} -m pip install pyinstaller vulture mypy
+	${VPYTHON} -m pip install -e ".[dev]"
 
 # Build
 .PHONY: exe

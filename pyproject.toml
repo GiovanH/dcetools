@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "changeme"
+version = "0.1.0"
+description = "A Python application template"
+readme = "readme.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.0",
+    "vulture>=2.0",
+    "pyinstaller>=6.0",
+]
+
+[project.scripts]
+changeme = "launcher:main"
+
+[tool.setuptools]
+packages = ["changeme"]

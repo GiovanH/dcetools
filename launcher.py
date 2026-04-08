@@ -1,6 +1,9 @@
 import sys
 
-from my_module import gui
+from changeme import gui
+
+def main():
+    sys.exit(gui.main())
 
 if __name__ == '__main__':
-    sys.exit(gui.main())
+    main()
