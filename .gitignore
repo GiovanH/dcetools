@@ -1,0 +1,19 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+bin/
+test/
+
+*.log
+*.log.bak
+
+build/
+*.dist/
+
+*.ini
+requirements
+
+venv/
+dist/

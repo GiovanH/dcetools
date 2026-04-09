@@ -3,12 +3,19 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "changeme"
+name = "dcetools"
 version = "0.1.0"
 description = "A Python application template"
 readme = "readme.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "colorama",
+    "tqdm",
+    "ujson",
+    "markdownify",
+    "markdown",
+    "joblib"
+]
 
 [project.optional-dependencies]
 dev = [
@@ -18,7 +25,7 @@ dev = [
 ]
 
 [project.scripts]
-changeme = "launcher:main"
+dcetools = "launcher:main"
 
 [tool.setuptools]
-packages = ["changeme"]
+packages = ["dcetools"]

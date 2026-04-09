@@ -1,6 +1,6 @@
 # CONFIGURATION
-project_name=changeme
-module_name=${project_name}
+project_name=dce-tools
+module_name=dcetools
 
 .PHONY: dev
 dev: venv
@@ -18,7 +18,7 @@ GIT_TAG ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo snapshot-$
 VPYTHON=venv/Scripts/python.exe
 
 SRC_ROOT=.
-MODULE_SRCS=$(shell /bin/find ${project_name} -type f -name '*.py')
+MODULE_SRCS=$(shell /bin/find ${module_name} -type f -name '*.py')
 SCRIPT_SRCS=$(wildcard ${SRC_ROOT}/*.py)
 HOOK_SRCS=$(wildcard ${SRC_ROOT}/hooks/*)
 
