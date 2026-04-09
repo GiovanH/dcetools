@@ -35,7 +35,14 @@ all: lint test exe
 watch:
 	nodemon --watch ${module_name}/ -e "py" --exec make dev
 
+
 # Check
+.PHONY: docs
+docs: Docs_CLI.md
+
+Docs_CLI.md: venv autodoc.py launcher.py ${MODULE_SRCS}
+	${VPYTHON} autodoc.py > $@
+
 .PHONY: check
 check: venv lint test
 

@@ -1,22 +1,19 @@
-import re
-
-from markdownify import MarkdownConverter
-
-from dcetools.formatter.MarkdownTextWriter import MarkdownTextWriter
-
-import sys
-import markdown
-
-
 import itertools
+import re
+import sys
 import textwrap
 import xml.etree.ElementTree as etree
 import xml.sax.saxutils
-from typing import Iterable
+from collections.abc import Iterable
+
+import markdown
 import markdownify
+from markdownify import MarkdownConverter
 
 from dcetools.formatter.base import keyfunc_authorgroup
-from dcetools.types import Attachment, Channel, DCEExport, Guild, Message, User
+from dcetools.formatter.MarkdownTextWriter import MarkdownTextWriter
+from dcetools.types import Guild, Message
+
 
 class PreserveTimeConverter(MarkdownConverter):
     def convert_time(self, el, text, parent_tags):
@@ -67,7 +64,7 @@ class PreserveTimeConverter(MarkdownConverter):
         # Replace the first 4 spaces with the bullet (preserving any extra characters beyond the 4-char indent)
         text = bullet + text[len(fixed_indent) :]
 
-        return "%s\n" % text
+        return f"{text}\n"
 
 def protect_ansi_in_code_blocks(html):
     def to_cdata(match):

@@ -11,7 +11,8 @@ try:
 except importlib.metadata.PackageNotFoundError:
     version = "dev"
 
-def main():
+def get_parser():
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--version', action='version', version=f'%(prog)s {version}')
@@ -29,6 +30,10 @@ def main():
 
     subparsers.help = f"Options are {[*subparsers._name_parser_map.keys()]}"
 
+    return parser
+
+def main():
+    parser = get_parser()
     args = parser.parse_args()
     args.func(args)
 

@@ -1,23 +1,7 @@
 import argparse
-import functools
-import itertools
-import operator
-import pprint
-import re
 import sys
-import textwrap
-import xml.etree.ElementTree as etree
-import xml.sax.saxutils
-from datetime import datetime
 
 # from typing import get_origin, get_args, Any
-from typing import Generic, Iterable, Mapping, Optional, TypedDict, TypeVar
-
-import markdown
-import markdownify
-from markdownify import MarkdownConverter
-from typing_extensions import NotRequired
-
 from dcetools.types import DCEExport, Message
 
 try:
@@ -47,15 +31,7 @@ def do_search(query: str) -> None:
     for doc in documents:
         for ix, message in enumerate(doc['messages']):
             if test_message(query, message):
-                for ir in range(SETTING_CONTEXT, 0, -1):
-                    try:
-                        print_message(doc, doc['messages'][ix-ir])
-                    except IndexError:
-                        break
-
-                print_message(doc, message)
-
-                for ir in range(1, SETTING_CONTEXT+1):
+                for ir in range(0-SETTING_CONTEXT, SETTING_CONTEXT+1):
                     try:
                         print_message(doc, doc['messages'][ix+ir])
                     except IndexError:
