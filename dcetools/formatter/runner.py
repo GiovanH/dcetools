@@ -17,6 +17,8 @@ import markdownify
 from markdownify import MarkdownConverter
 from typing_extensions import NotRequired
 
+from dcetools.formatter.MarkdownTextWriter import MarkdownTextWriter
+
 try:
     import ujson as json
 except ImportError:
@@ -24,6 +26,10 @@ except ImportError:
 
 from dcetools.formatter.MarkdownNodeWriter import MarkdownNodeWriter
 
+formatters = {
+    'MarkdownNode': MarkdownNodeWriter,
+    'MarkdownText': MarkdownTextWriter
+}
 
 def main(args):
     documents = []
@@ -36,12 +42,15 @@ def main(args):
             sys.stderr.flush()
             raise json.JSONDecodeError(msg=e.msg, doc=input_path, pos=e.pos) from e # type: ignore
 
-    for line in MarkdownNodeWriter(documents).format():
+    formatter = formatters[args.format]
+
+    for line in formatter(documents).format():
         print(line)
 
 
 def define_parser(parser):
     parser.add_argument('input_files', help="Input json files", nargs='*')
+    parser.add_argument('--format', choices=formatters.keys(), default='MarkdownNode')
 
     parser.set_defaults(func=main)
 

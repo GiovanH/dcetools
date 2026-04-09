@@ -4,8 +4,12 @@ import importlib.metadata
 from dcetools import validate_logs
 from dcetools.formatter import runner as format_runner
 from dcetools.util import logfmt
+from dcetools import search
 
-version = importlib.metadata.version('dce-tools')
+try:
+    version = importlib.metadata.version('dcetools')
+except importlib.metadata.PackageNotFoundError:
+    version = "dev"
 
 def main():
     parser = argparse.ArgumentParser()
@@ -19,6 +23,9 @@ def main():
 
     parser_format = subparsers.add_parser("format")
     format_runner.define_parser(parser_format)
+
+    parser_search = subparsers.add_parser("search")
+    search.define_parser(parser_search)
 
     subparsers.help = f"Options are {[*subparsers._name_parser_map.keys()]}"
 

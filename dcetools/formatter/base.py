@@ -25,57 +25,6 @@ except ImportError:
     import json
 
 
-class PreserveTimeConverter(MarkdownConverter):
-    def convert_time(self, el, text, parent_tags):
-        # Retrieve original attributes (like datetime) to rebuild the tag
-        attrs = "".join([f' {k}="{v}"' for k, v in el.attrs.items()])
-        return f'<time{attrs}>{text}</time>'
-
-    def convert_li(self, el, text, parent_tags):
-        # handle some early-exit scenarios
-        text = (text or "").strip()
-        if not text:
-            return "\n"
-
-        # determine list item bullet character to use
-        parent = el.parent
-        if parent is not None and parent.name == "ol":
-            if parent.get("start") and str(parent.get("start")).isnumeric():
-                start = int(parent.get("start"))
-            else:
-                start = 1
-            # For ordered lists, calculate based on sibling count
-            bullet = "%s." % (start + len(el.find_previous_siblings("li")))
-        else:
-            # For unordered lists, calculate nested depth (if needed)
-            depth = -1
-            tmp_el = el
-            while tmp_el:
-                if tmp_el.name == "ul":
-                    depth += 1
-                tmp_el = tmp_el.parent
-            bullets = self.options["bullets"] # type: ignore
-            bullet = bullets[depth % len(bullets)]
-
-        # Add a trailing space to the bullet marker
-        bullet = bullet + " "
-
-        # Instead of calculating indent from bullet length, use fixed 4 spaces
-        fixed_indent = "    "  # 4 spaces, as required by CommonMark
-        bullet_indent = fixed_indent
-
-        # Indent the content lines with a fixed indent of 4 spaces
-        def _indent_for_li(match):
-            line_content = match.group(1)
-            return bullet_indent + line_content if line_content else ""
-
-        text = markdownify.re_line_with_content.sub(_indent_for_li, text) # type: ignore
-
-        # Replace the first 4 spaces with the bullet (preserving any extra characters beyond the 4-char indent)
-        text = bullet + text[len(fixed_indent) :]
-
-        return "%s\n" % text
-
 def keyfunc_timechangroup(msg) -> tuple:
     return (msg["timestamp"][:10], msg["channel"])
 

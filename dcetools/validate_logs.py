@@ -12,8 +12,6 @@ from typing import TypedDict
 import joblib
 import tqdm
 
-from .formatter.base import Message
-
 memory = joblib.Memory(location='/tmp/cache')
 
 
@@ -128,7 +126,8 @@ def main(args):
     print("Validated")
 
 
-def define_parser(parser):
+def define_parser(parser: argparse.ArgumentParser):
+    parser.description = "Validate a set of unknown discord logs against a set of known logs. This looks for signs of tampering, namely out-of-order messages."
     parser.add_argument('query_glob', help='Input json files')
     parser.add_argument('baseline_glob', help='Input json files')
     parser.set_defaults(func=main)

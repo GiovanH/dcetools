@@ -27,6 +27,7 @@ class Guild(TypedDict):
 
 class User(TypedDict):
     name: str
+    id: str
     nickname: str
     avatarUrl: str
 

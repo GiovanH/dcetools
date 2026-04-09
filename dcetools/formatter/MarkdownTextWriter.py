@@ -3,6 +3,9 @@ import re
 import textwrap
 from typing import Iterable
 
+from dcetools.formatter.base import DiscordWriter, keyfunc_authorgroup
+
+from dcetools.types import Attachment, Channel, DCEExport, Guild, Message, User
 
 class MarkdownTextWriter(DiscordWriter):
     MODE_CUSTOMBLOCKS = False
