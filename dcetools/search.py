@@ -71,12 +71,14 @@ def main(args):
         interactive_search()
 
 def define_parser(parser):
+    parser.description = """Loads multiple logs from json files and searches through them. This loads the entire contents into memory."""
     parser.add_argument('input_files', help="Input json files", nargs='*')
-    parser.add_argument('--query')
-    parser.add_argument('--context', type=int, default=0)
+    parser.add_argument('--query', help="If this is set, run a single search matching this query. Otherwise, give the user an interactive prompt.")
+    parser.add_argument('--context', type=int, default=0, help="How much context to display around match results, in whole messages.")
     parser.add_argument("--dump",
         action=argparse.BooleanOptionalAction,
-        default=True
+        default=False,
+        help="Show the entire json object for each message matched, not just the human-readable contents."
     )
 
     parser.set_defaults(func=main)

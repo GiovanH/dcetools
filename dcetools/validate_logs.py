@@ -127,16 +127,22 @@ def main(args):
 
 
 def define_parser(parser: argparse.ArgumentParser):
-    parser.description = "Validate a set of unknown discord logs against a set of known logs. This looks for signs of tampering, namely out-of-order messages."
+    parser.description = """Validate a set of unknown discord logs against a set of known logs. The purpose of this is to look for signs of tampering, namely out-of-order messages.
+Use query_glob to match the json logfiles to validate and baseline_glob for known good logs.
+
+The more messages in baseline chronologically close to the messages in query, the more accurate this check will be."""
     parser.add_argument('query_glob', help='Input json files')
     parser.add_argument('baseline_glob', help='Input json files')
+    parser.epilog = """Glob values can be a quoted glob, like "*.json".
+
+Example usage: `validate "query/*.json" "baseline/*.json"`
+"""
     parser.set_defaults(func=main)
 
     return parser
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description="()",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     define_parser(parser)

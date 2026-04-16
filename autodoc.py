@@ -1,20 +1,35 @@
-from argparse import ArgumentParser
 import argparse
-import os
-import pprint
 import sys
-import textwrap
-from collections import defaultdict
+from argparse import ArgumentParser
 
 import launcher
 
+
 def print_full_help(parser: ArgumentParser, prefix: str = "") -> None:
     label = prefix if prefix else parser.prog
-    print(f"\n{'═' * 60}")
-    print(f"  {label}")
-    print(f"{'═' * 60}\n")
+
+    print(label, file=sys.stderr)
+
+    epilog = None
+
+    print(f"### `{label}`\n")
+    # Print strings as text outside the --help invocation
+    if parser.usage:
+        print(f"`{parser.usage}`" + "\n")
+        parser.usage = None
+    if parser.description:
+        print(parser.description + "\n")
+        parser.description = None
+    if parser.epilog:
+        epilog = parser.epilog
+        parser.epilog = None
+
+    print("```text")
     parser.print_help()
-    print()
+    print("```\n")
+
+    if epilog:
+        print(epilog + "\n")
 
     for action in parser._actions:
         if not isinstance(action, argparse._SubParsersAction):

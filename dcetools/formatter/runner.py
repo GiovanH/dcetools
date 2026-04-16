@@ -49,8 +49,14 @@ def main(args):
 
 
 def define_parser(parser):
+    parser.description = "Format json log files into a new output. This new output is written to stdout, so redirect this to a file to capture it. "
     parser.add_argument('input_files', help="Input json files", nargs='*')
-    parser.add_argument('--format', choices=formatters.keys(), default='MarkdownNode')
+    parser.add_argument('--format', '-f', choices=formatters.keys(), default='MarkdownNode', help="Which formatter to use. This defines what the output format will be.")
+
+    parser.epilog = """Formatters:
+- MarkdownText: Outputs markdown using the old text implementation.
+- MarkdownNode: Outputs markdown using the new node implementation.
+"""
 
     parser.set_defaults(func=main)
 
