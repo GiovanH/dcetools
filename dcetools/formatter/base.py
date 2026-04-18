@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import argparse
 import functools
 import itertools
@@ -34,13 +35,23 @@ def keyfunc_authorgroup(msg) -> str:
         return 'SYS'
     return msg["author"]["id"]
 
+Frag = TypeVar('Frag')
 
-class DiscordWriter():
-    QUIRK_EXTRA_LABELS: bool = False
-    QUIRK_TRIM: bool = False
+class DiscordWriter(ABC, Generic[Frag]):
     QUIRK_NO_REPEAT_CHANNEL: bool = False
 
+    @classmethod
+    def define_parser(cls, parser):
+        parser.set_defaults(factory=cls)
+
+        return parser
+
+    def parse_args(self, args):
+        return
+
     def __init__(self, json_docs: list[DCEExport]):
+        self.json_docs: list[DCEExport] = json_docs
+
         self.channels: Mapping[str, Channel] = {
             json_doc['channel']['id']: json_doc['channel']
             for json_doc in json_docs
@@ -57,6 +68,11 @@ class DiscordWriter():
             ]
             for json_doc in json_docs
         ], [])
+
+        self.messages_by_id: dict[str, Message] = {
+            m['id']: m
+            for m in self.all_messages
+        }
 
         self.replied_to_ids: set[str] = {
             m["reference"]["messageId"] # type: ignore
@@ -75,67 +91,94 @@ class DiscordWriter():
         for _, g in itertools.groupby(sorted(self.all_messages, key=keyfunc_timechangroup), keyfunc_timechangroup):
             self.time_grouped_messages.append(list(g))
 
-
+    # Formatters
     def formatMessageTime(self, message: Message, fmt: str) -> str:
         iso_timestamp = message['timestamp'][:19] + 'Z'
         dt = datetime.strptime(iso_timestamp, "%Y-%m-%dT%H:%M:%SZ")
         return dt.strftime(fmt)
 
-    def sectionHeaderBlock(self, members: list[User], message_list: list[Message], title: str | None = None) -> Iterable[str]: ...
+    # def formatChannelTitle(self):
+    #     return f"{maybe_guild.get('name')} > {self.channels[this_channel]['name']}"
 
-    def formatChannelWrapStart(self) -> Iterable[str]: ...
-
-    def formatMessageGroupTime(self, msg_group_time: list[Message], maybe_guild: Guild | None, chanstr: str = '') -> Iterable[str]: ...
-
+    # Entrypoint
     def format(self) -> Iterable[str]:
+        """Format the document and yield final strings"""
         for frag in self.formatDocuments():
             yield str(frag)
 
-    def formatDocuments(self) -> Iterable[str]:
-        last_channel = None
+    # Division, top-level
 
-        printed_header = False
+    def formatDocuments(self) -> Iterable[Frag]:
+        key = lambda msg_group: msg_group[0]["channel"]
 
-        for msg_group_time in self.time_grouped_messages:
+        for _, g in itertools.groupby(sorted(self.time_grouped_messages, key=key), key):
+            yield from self.formatChannel([*g])
 
-            this_channel = msg_group_time[0]['channel']
-            maybe_guild: Guild | None = self.guild_by_channel.get(this_channel)
+    # Division, channel
 
-            chanstr = ''
+    def formatChannelWrapStart(
+        self,
+        message_list: list[Message],
+    ) -> Iterable[Frag]:
+        return
+        yield
 
-            # len(channels.keys()) > 1
-            if (this_channel != last_channel):
-                if not self.QUIRK_NO_REPEAT_CHANNEL:
-                    if printed_header:
-                        yield from self.formatChannelWrapStart()
+    # section_members = [message['author'] for message in chan_messages]
 
-                    maybe_name = None
-                    if maybe_guild:
-                        maybe_name = f"{maybe_guild.get('name')} > {self.channels[this_channel]['name']}"
+    def formatChannelWrapEnd(
+        self,
+        message_list: list[Message],
+    ) -> Iterable[Frag]:
+        return
+        yield
 
-                    section_members = [message['author'] for message in msg_group_time]
+    def formatChannel(self, channel_time_groups: list[list[Message]]) -> Iterable[Frag]:
+        this_channel = channel_time_groups[0][0]['channel']
+        maybe_guild: Guild | None = self.guild_by_channel.get(this_channel)
 
-                    for node in self.sectionHeaderBlock(section_members, msg_group_time, maybe_name):
-                        yield str(node)
+        chan_messages = [m for l in channel_time_groups for m in l]
 
-                    printed_header = True
-                    chanstr = f", {self.channels[this_channel]['name']}"
+        yield from self.formatChannelWrapStart(chan_messages)
 
-            for node in self.formatMessageGroupTime(msg_group_time, maybe_guild, chanstr):
-                yield str(node)
-            last_channel = this_channel
+        for msg_group_time in channel_time_groups:
+            yield from self.formatMessageGroupTime(msg_group_time, maybe_guild, this_channel)
 
-    def formatMessagePost(self, message: Message) -> Iterable: ...
+        yield from self.formatChannelWrapEnd(chan_messages)
 
-    def formatMessageRecipientAdd(self, message: Message) -> Iterable: ...
+    # Division, message group
 
-    def formatMessageEmbed(self, message: Message) -> Iterable: ...
+    @abstractmethod
+    def formatMessageGroupTime(
+        self,
+        msg_group_time: list[Message],
+        maybe_guild: Guild | None,
+        channel: str
+    ) -> Iterable[Frag]:
+        raise NotImplementedError()
 
-    def formatMessageUnknown(self, message: Message) -> Iterable: ...
 
-    def messageToFrags(self, message: Message) -> Iterable:
-        # lines = []
+    # Division, merged author
 
+    def formatMessageGroupAuthor(self, msg_group_time_author: list[Message]) -> Iterable[Frag]:
+        raise NotImplementedError()
+
+    # chanstr = f", {self.channels[this_channel]['name']}"
+
+    # Individual message
+
+    def formatMessagePost(self, message: Message) -> Iterable[Frag]:
+        raise NotImplementedError()
+
+    def formatMessageRecipientAdd(self, message: Message) -> Iterable[Frag]:
+        raise NotImplementedError()
+
+    def formatMessageEmbed(self, message: Message) -> Iterable[Frag]:
+        raise NotImplementedError()
+
+    def formatMessageUnknown(self, message: Message) -> Iterable[Frag]:
+        raise NotImplementedError()
+
+    def formatMessage(self, message: Message) -> Iterable[Frag]:
         if message['type'] == 'Default' or message['type'] == 'Reply':
             try:
                 yield from self.formatMessagePost(message)

@@ -17,6 +17,7 @@ import markdownify
 from markdownify import MarkdownConverter
 from typing_extensions import NotRequired
 
+from dcetools.formatter.HtmlWriter import HtmlWriter
 from dcetools.formatter.MarkdownTextWriter import MarkdownTextWriter
 
 try:
@@ -24,11 +25,13 @@ try:
 except ImportError:
     import json
 
-from dcetools.formatter.MarkdownNodeWriter import MarkdownNodeWriter
+from dcetools.formatter.MarkdownNodeWriter import HTMLNodeWriter, MarkdownNodeWriter
 
 formatters = {
     'MarkdownNode': MarkdownNodeWriter,
-    'MarkdownText': MarkdownTextWriter
+    'MarkdownText': MarkdownTextWriter,
+    # 'NodeHtml': HTMLNodeWriter,
+    'Html': HtmlWriter
 }
 
 def main(args):
@@ -42,22 +45,34 @@ def main(args):
             sys.stderr.flush()
             raise json.JSONDecodeError(msg=e.msg, doc=input_path, pos=e.pos) from e # type: ignore
 
-    formatter = formatters[args.format]
+    formatter = args.factory(documents)
 
-    for line in formatter(documents).format():
+    formatter.parse_args(args)
+
+    for line in formatter.format():
         print(line)
 
-
-def define_parser(parser):
+def define_parser(parser: argparse.ArgumentParser):
     parser.description = "Format json log files into a new output. This new output is written to stdout, so redirect this to a file to capture it. "
-    parser.add_argument('input_files', help="Input json files", nargs='*')
-    parser.add_argument('--format', '-f', choices=formatters.keys(), default='MarkdownNode', help="Which formatter to use. This defines what the output format will be.")
+    parser.add_argument('input_files', help="Input json files", nargs='+')
+
+    parser.add_argument('-o', '--output', help="Directory to save output files. '-' to write all output to stdout.", default='-')
+
+    subparsers = parser.add_subparsers(dest="formatter", metavar="FORMATTER", help="Which formatter to use. This defines what the output format will be.")
+
+    # parser.add_argument('--format', '-f', choices=formatters.keys(), default='MarkdownNode', )
+
+    for k, formatter in formatters.items():
+        formatter.define_parser(subparsers.add_parser(k, aliases=[k.lower(), k.upper(), k.capitalize()]))
+
 
     parser.epilog = """Formatters:
 - MarkdownText: Outputs markdown using the old text implementation.
 - MarkdownNode: Outputs markdown using the new node implementation.
+- Html: Straight port of `jsmsj/DCE-JSONtoHTML`. Lacking support.
 """
 
+    parser.set_defaults(factory=MarkdownNodeWriter)
     parser.set_defaults(func=main)
 
     return parser

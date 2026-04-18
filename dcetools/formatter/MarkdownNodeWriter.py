@@ -11,7 +11,7 @@ import markdownify
 from markdownify import MarkdownConverter
 
 from dcetools.formatter.base import keyfunc_authorgroup
-from dcetools.formatter.MarkdownTextWriter import MarkdownTextWriter
+from dcetools.formatter.MarkdownTextWriter import MarkdownOutputWriter
 from dcetools.types import Guild, Message
 
 
@@ -77,27 +77,49 @@ def protect_ansi_in_code_blocks(html):
         flags=re.DOTALL
     )
 
-class MarkdownNodeWriter(MarkdownTextWriter):
+class MarkdownNodeWriter(MarkdownOutputWriter):
     markdownconverter = PreserveTimeConverter(bullets="-+*", heading_style="ATX")
     md = markdown.Markdown(extensions=[
         'fenced_code', 'nl2br'
     ])
 
-    def formatMessageGroupTime(self, msg_group_time: list[Message], maybe_guild: Guild | None, chanstr: str = '') -> Iterable[str]:
+    def renderFromHtml(self, html):
+        return self.markdownconverter.convert(html)
+
+    # Formatters
+
+    # Entrypoint
+
+    # Division, top-level
+
+    # Division, channel
+
+    # Division, message group
+
+    def formatMessageGroupTime(
+        self,
+        msg_group_time: list[Message],
+        maybe_guild: Guild | None,
+        channel: str
+    ) -> Iterable[etree.Element | str]:
+        # Time groups get rendered as markdown strings
+
         time_fmt: str = self.formatMessageTime(msg_group_time[0], "%B %d, %Y")
-        this_channel = msg_group_time[0]['channel']
+
+        this_channel = channel
 
         time_elem = etree.Element("time")
         time_elem.set("timestamp", msg_group_time[0]["timestamp"])
         time_elem.set("data-guild", maybe_guild.get("id") if maybe_guild else "")
         time_elem.set("data-channel", this_channel)
         time_elem.set("data-id", msg_group_time[0]["id"])
-        time_elem.text = time_fmt + chanstr
+        time_elem.text = time_fmt + f", {self.channels[this_channel]['name']}"
 
         yield etree.tostring(time_elem, encoding='unicode')
         yield ('')
 
         author_grouped_messages: list[list[Message]] = []
+
         # DON'T SORT
         for _, g in itertools.groupby(msg_group_time, keyfunc_authorgroup):
             author_grouped_messages.append(list(g))
@@ -106,37 +128,42 @@ class MarkdownNodeWriter(MarkdownTextWriter):
         for msg_group_time_author in author_grouped_messages:
             message_list.extend([*self.formatMessageGroupAuthor(msg_group_time_author)])
 
-        # print("list", repr(message_list))
         html = etree.tostring(message_list, encoding='unicode')
-        # print("tostring", repr(html))
-        yield self.markdownconverter.convert(html)
+        yield self.renderFromHtml(html)
         yield ''
 
+    # Division, merged author
+
     def formatMessageGroupAuthor(self, msg_group_time_author: list[Message]) -> Iterable[etree.Element]:
+        # Authorgroup is li, messages are a ul in that li
         li = etree.Element("li")
         li.attrib['class'] = 'group'
-        for i, message in enumerate(msg_group_time_author):
-            time_fmt_granular: str = self.formatMessageTime(message, "%I:%M %p")
 
+        for i, message in enumerate(msg_group_time_author):
+
+            # If this is the first, add name/date format
+            # within LI before UL
             if i == 0 or self.QUIRK_EXTRA_LABELS:
+                time_fmt_granular: str = self.formatMessageTime(message, "%I:%M %p")
+
                 if message['type'] == 'RecipientAdd':
                     li.text = "SYS "
 
                     time_el = etree.SubElement(li, "time", datetime=message["timestamp"])
                     time_el.text = time_fmt_granular
-                    # yield li
                 else:
-                    # li = etree.Element("li")
                     li.text = f'{message["author"]["nickname"]} '
 
                     time_el = etree.SubElement(li, "time", datetime=message["timestamp"])
                     time_el.text = time_fmt_granular
 
             subul = etree.SubElement(li, "ul")
-            for subli in self.messageToFrags(message):
+            for subli in self.formatMessage(message):
                 subul.append(subli)
 
         yield li
+
+    # Individual message
 
     def formatMessagePost(self, message: Message) -> Iterable[etree.Element]:
         from_md = None
@@ -172,7 +199,46 @@ class MarkdownNodeWriter(MarkdownTextWriter):
         yield li
 
     def formatMessageEmbed(self, message: Message) -> Iterable[etree.Element]:
-        yield etree.Comment(str({"author": message["author"]["nickname"], "embeds": message["embeds"]}))
+        comment = str({
+            "author": message["author"]["nickname"],
+            "embeds": message["embeds"]
+        })
+        e: etree.Element = etree.Comment(comment) # type: ignore
+        yield e
 
     def formatMessageUnknown(self, message: Message) -> Iterable[etree.Element]:
-        yield etree.Comment(str({"type": message["type"], "author": message["author"]["nickname"], "embeds": message["embeds"]}))
+        comment = str({
+            "type": message["type"],
+            "author": message["author"]["nickname"],
+            "embeds": message["embeds"]
+        })
+        e: etree.Element = etree.Comment(comment) # type: ignore
+        yield e
+
+class HTMLNodeWriter(MarkdownNodeWriter):
+    # Hijack MarkdownNode without processing markdown
+    def renderFromHtml(self, html):
+        return str(html)
+
+    @classmethod
+    def define_parser(cls, parser):
+        parser.set_defaults(factory=cls)
+        return parser
+
+    def parse_args(self, args):
+        self.MODE_CUSTOMBLOCKS = False
+        return
+
+    def formatChannelWrapStart(
+        self,
+        message_list: list[Message],
+    ) -> Iterable[str]:
+        return
+        yield
+
+    def formatChannelWrapEnd(
+        self,
+        message_list: list[Message],
+    ) -> Iterable[str]:
+        return
+        yield

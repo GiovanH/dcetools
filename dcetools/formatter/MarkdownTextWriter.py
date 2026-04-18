@@ -1,3 +1,4 @@
+import argparse
 import itertools
 import re
 import textwrap
@@ -7,8 +8,28 @@ from dcetools.formatter.base import DiscordWriter, keyfunc_authorgroup
 
 from dcetools.types import Attachment, Channel, DCEExport, Guild, Message, User
 
-class MarkdownTextWriter(DiscordWriter):
+
+class MarkdownOutputWriter(DiscordWriter):
+    QUIRK_EXTRA_LABELS: bool = False
+    QUIRK_TRIM: bool = False
+    QUIRK_NO_REPEAT_CHANNEL: bool = False
+
     MODE_CUSTOMBLOCKS = False
+
+    @classmethod
+    def define_parser(cls, parser):
+        parser.set_defaults(factory=cls)
+
+        parser.add_argument("-c", "--customblocks",
+            action=argparse.BooleanOptionalAction,
+            default=False
+        )
+        return parser
+
+    def parse_args(self, args):
+        self.MODE_CUSTOMBLOCKS = args.customblocks
+
+        return
 
     def file_header(self) -> str:
         return """---
@@ -20,9 +41,27 @@ Tags: todo
 ---
 """
 
-    def sectionHeaderBlock(self, members: list[User], message_list: list[Message], title: str | None = None) -> Iterable[str]:
-        mdheader = (title or repr({message['author']["nickname"] for message in message_list})) + \
+    # Division, channel
+
+    def formatChannelWrapStart(
+        self,
+        message_list: list[Message],
+    ) -> Iterable[str]:
+        members = [message['author'] for message in message_list]
+
+        # title
+        this_channel = message_list[0]['channel']
+        maybe_guild: Guild | None = self.guild_by_channel.get(this_channel)
+        if maybe_guild:
+            title = f"{maybe_guild.get('name')} > {self.channels[this_channel]['name']}"
+        else:
+            title = repr({message['author']["nickname"] for message in message_list})
+
+        # Discord block header
+        mdheader = (title) + \
             " " + self.formatMessageTime(message_list[0], "%B %d, %Y")
+
+        # Format-dependant block output
         if self.MODE_CUSTOMBLOCKS:
             args: list[str] = sorted({
                 f'avatar_{author["nickname"]}="{author["avatarUrl"]}"'
@@ -41,6 +80,84 @@ Tags: todo
             ) + '\n'
             yield (f"## {mdheader}\n\n/// discord{yamloptsstr}")
 
+    def formatChannelWrapEnd(
+        self,
+        message_list: list[Message],
+    ) -> Iterable[str]:
+        if self.MODE_CUSTOMBLOCKS:
+            yield ""
+        else:
+            yield ("///\n")
+
+
+class MarkdownTextWriter(MarkdownOutputWriter, DiscordWriter):
+    # Division, top-level
+
+    def formatDocuments(self) -> Iterable[str]:
+        for line in super().formatDocuments():
+            # print(line, file=sys.stderr)
+            if line is None:
+                if self.QUIRK_TRIM:
+                    print()
+                    continue
+                else:
+                    line = ''
+
+            if self.MODE_CUSTOMBLOCKS:
+                yield ("    " + line)
+            else:
+                yield (line)
+
+    # Division, message group
+
+    def formatMessageGroupTime(
+        self,
+        msg_group_time: list[Message],
+        maybe_guild: Guild | None,
+        channel: str
+    ) -> Iterable[str]:
+        time_fmt: str = self.formatMessageTime(msg_group_time[0], "%B %d, %Y")
+
+        this_channel = channel
+
+        chanstr = f", {self.channels[this_channel]['name']}"
+        yield (
+            f'<time timestamp="{msg_group_time[0]["timestamp"]}" data-guild="{maybe_guild.get("id") if maybe_guild else ""} "'
+            f'data-channel="{this_channel}" data-id="{msg_group_time[0]["id"]}">\n{time_fmt}{chanstr}</time>'
+        )
+        yield ('')
+
+        author_grouped_messages: list[list[Message]] = []
+
+        # DON'T SORT
+        for _, g in itertools.groupby(msg_group_time, keyfunc_authorgroup):
+            author_grouped_messages.append(list(g))
+
+        for msg_group_time_author in author_grouped_messages:
+            yield from self.formatMessageGroupAuthor(msg_group_time_author)
+        yield ('')
+
+    # Division, merged author
+
+    def formatMessageGroupAuthor(self, msg_group_time_author: list[Message]) -> Iterable:
+        for i, message in enumerate(msg_group_time_author):
+            time_fmt_granular: str = self.formatMessageTime(message, "%I:%M %p")
+
+            # If this is the first, add L1 name/date format line
+            # before subsequent l2 lines
+            if i == 0 or self.QUIRK_EXTRA_LABELS:
+                if message['type'] == 'RecipientAdd':
+                    yield (
+                        f'- SYS <time datetime="{message["timestamp"]}">{time_fmt_granular}</time>'
+                    )
+                else:
+                    yield (
+                        f'- {message["author"]["nickname"]} <time datetime="{message["timestamp"]}">{time_fmt_granular}</time>'
+                    )
+
+            yield from self.formatMessage(message)
+
+    # Individual messages
 
     def formatMessagePost(self, message: Message) -> Iterable[str]:
         # Posts
@@ -90,68 +207,3 @@ Tags: todo
         yield (
             f'<!-- { {"author": message["author"]["nickname"], "type": message["type"], "content": message["content"], "embeds": message["embeds"]} } -->'
         )
-
-    def formatDocuments(self) -> Iterable[str]:
-        if self.QUIRK_NO_REPEAT_CHANNEL:
-            yield from self.sectionHeaderBlock(self.members, self.all_messages)
-
-        for line in super().formatDocuments():
-            # print(line, file=sys.stderr)
-            if line is None:
-                if self.QUIRK_TRIM:
-                    print()
-                    continue
-                else:
-                    line = ''
-
-            if self.MODE_CUSTOMBLOCKS:
-                yield ("    " + line)
-            else:
-                yield (line)
-
-        if self.MODE_CUSTOMBLOCKS:
-            yield ""
-        else:
-            yield ("///\n")
-
-    def formatChannelWrapStart(self) -> Iterable[str]:
-        if not self.MODE_CUSTOMBLOCKS:
-            yield ("///\n")
-
-    def formatMessageGroupTime(self, msg_group_time: list[Message], maybe_guild: Guild | None, chanstr: str = '') -> Iterable[str]:
-        time_fmt: str = self.formatMessageTime(msg_group_time[0], "%B %d, %Y")
-
-        this_channel = msg_group_time[0]['channel']
-
-        yield (
-            f'<time timestamp="{msg_group_time[0]["timestamp"]}" data-guild="{maybe_guild.get("id") if maybe_guild else ""}"'
-            f'data-channel="{this_channel}" data-id="{msg_group_time[0]["id"]}">\n{time_fmt}{chanstr}</time>'
-        )
-        yield ('')
-
-        author_grouped_messages: list[list[Message]] = []
-        # DON'T SORT
-        for _, g in itertools.groupby(msg_group_time, keyfunc_authorgroup):
-            author_grouped_messages.append(list(g))
-
-        # print("author_grouped_messages", estimate_type(author_grouped_messages), file=sys.stderr)
-
-        for msg_group_time_author in author_grouped_messages:
-            yield from self.formatMessageGroupAuthor(msg_group_time_author)
-        yield ('')
-
-    def formatMessageGroupAuthor(self, msg_group_time_author: list[Message]) -> Iterable:
-        for i, message in enumerate(msg_group_time_author):
-            time_fmt_granular: str = self.formatMessageTime(message, "%I:%M %p")
-
-            if i == 0 or self.QUIRK_EXTRA_LABELS:
-                if message['type'] == 'RecipientAdd':
-                    yield (
-                        f'- SYS <time datetime="{message["timestamp"]}">{time_fmt_granular}</time>'
-                    )
-                else:
-                    yield (
-                        f'- {message["author"]["nickname"]} <time datetime="{message["timestamp"]}">{time_fmt_granular}</time>'
-                    )
-
-            yield from self.messageToFrags(message)

@@ -1,22 +1,7 @@
 
-import argparse
-import functools
-import itertools
-import operator
-import re
-import sys
-import textwrap
-import xml.etree.ElementTree as etree
-import xml.sax.saxutils
-from datetime import datetime
-
 # from typing import get_origin, get_args, Any
-from typing import Generic, Iterable, Mapping, Optional, TypedDict, TypeVar
+from typing import NotRequired, TypedDict
 
-import markdown
-import markdownify
-from markdownify import MarkdownConverter
-from typing_extensions import NotRequired
 
 class Channel(TypedDict):
     id: str
@@ -30,6 +15,7 @@ class User(TypedDict):
     id: str
     nickname: str
     avatarUrl: str
+    color: str
 
 # class Reference(TypedDict):
 #     messageId: str
@@ -51,6 +37,8 @@ class Message(TypedDict):
     attachments: list[Attachment]
     embeds: list[dict] # todo
     mentions: list[User]
+    timestampEdited: str | None
+    isPinned: bool
 
 
 class DCEExport(TypedDict):
