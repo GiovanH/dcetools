@@ -2,7 +2,7 @@ import argparse
 import itertools
 import re
 import textwrap
-from typing import Iterable
+from typing import Iterable, Literal
 
 from dcetools.formatter.base import DiscordWriter, keyfunc_authorgroup
 
@@ -14,20 +14,21 @@ class MarkdownOutputWriter(DiscordWriter):
     QUIRK_TRIM: bool = False
     QUIRK_NO_REPEAT_CHANNEL: bool = False
 
-    MODE_CUSTOMBLOCKS = False
+    FENCE_FORMAT: Literal['cb', 'mdx', 'none']
 
     @classmethod
     def define_parser(cls, parser):
         parser.set_defaults(factory=cls)
 
-        parser.add_argument("-c", "--customblocks",
-            action=argparse.BooleanOptionalAction,
-            default=False
+        parser.add_argument("-f", "--format",
+            choices=['cb', 'mdx', 'ticks', 'none'],
+            default='mdx',
+            help="Fence to use. Customblocks, mdx, ticks, or none."
         )
         return parser
 
     def parse_args(self, args):
-        self.MODE_CUSTOMBLOCKS = args.customblocks
+        self.FENCE_FORMAT = args.format
 
         return
 
@@ -62,14 +63,14 @@ Tags: todo
             " " + self.formatMessageTime(message_list[0], "%B %d, %Y")
 
         # Format-dependant block output
-        if self.MODE_CUSTOMBLOCKS:
+        if self.FENCE_FORMAT == 'cb':
             args: list[str] = sorted({
                 f'avatar_{author["nickname"]}="{author["avatarUrl"]}"'
                 for author in
                 members
             })
             yield (f"## {mdheader}\n\n::: discord {' '.join(args)}")
-        else:
+        elif self.FENCE_FORMAT == 'mdx':
             avatars = {
                 author["nickname"]: author["avatarUrl"]
                 for author in
@@ -79,16 +80,23 @@ Tags: todo
                 ["    avatars: " + repr(avatars)]
             ) + '\n'
             yield (f"## {mdheader}\n\n/// discord{yamloptsstr}")
+        elif self.FENCE_FORMAT == 'ticks':
+            yield (f"## {mdheader}\n\n```discord")
+        else:
+            yield (f"## {mdheader}\n\n")
 
     def formatChannelWrapEnd(
         self,
         message_list: list[Message],
     ) -> Iterable[str]:
-        if self.MODE_CUSTOMBLOCKS:
+        if self.FENCE_FORMAT == 'cb':
             yield ""
-        else:
+        elif self.FENCE_FORMAT == 'mdx':
             yield ("///\n")
-
+        elif self.FENCE_FORMAT == 'ticks':
+            yield ("```")
+        else:
+            yield ''
 
 class MarkdownTextWriter(MarkdownOutputWriter, DiscordWriter):
     # Division, top-level
@@ -103,7 +111,7 @@ class MarkdownTextWriter(MarkdownOutputWriter, DiscordWriter):
                 else:
                     line = ''
 
-            if self.MODE_CUSTOMBLOCKS:
+            if self.FENCE_FORMAT == 'cb':
                 yield ("    " + line)
             else:
                 yield (line)

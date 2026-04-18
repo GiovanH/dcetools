@@ -75,7 +75,7 @@ venv/pyvenv.cfg: pyproject.toml
 .PHONY: exe
 exe: venv ${TARGET_EXES}
 
-dist/${project_name}-%.exe: ${SRC_ROOT}/%.py ${MODULE_SRCS} ${SCRIPT_SRCS} ${HOOK_SRCS} Makefile
+dist/${project_name}.exe: ${SRC_ROOT}/launcher.py ${MODULE_SRCS} ${SCRIPT_SRCS} ${HOOK_SRCS} Makefile
 	mkdir -p dist build
 # 	cp icon.png build/
 	${VPYTHON} -m PyInstaller \

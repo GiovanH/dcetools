@@ -19,6 +19,7 @@ from typing_extensions import NotRequired
 
 from dcetools.formatter.HtmlWriter import HtmlWriter
 from dcetools.formatter.MarkdownTextWriter import MarkdownTextWriter
+from dcetools.util.argparse_helpers import CompactArgparseFormatter
 
 try:
     import ujson as json
@@ -28,10 +29,10 @@ except ImportError:
 from dcetools.formatter.MarkdownNodeWriter import HTMLNodeWriter, MarkdownNodeWriter
 
 formatters = {
-    'MarkdownNode': MarkdownNodeWriter,
-    'MarkdownText': MarkdownTextWriter,
+    'md': MarkdownNodeWriter,
+    'mdtext': MarkdownTextWriter,
     # 'NodeHtml': HTMLNodeWriter,
-    'Html': HtmlWriter
+    'html': HtmlWriter
 }
 
 def main(args):
@@ -58,19 +59,23 @@ def define_parser(parser: argparse.ArgumentParser):
 
     # parser.add_argument('-o', '--output', help="Directory to save output files. '-' to write all output to stdout.", default='-')
 
-    subparsers = parser.add_subparsers(dest="formatter", metavar="FORMATTER", help="Which formatter to use. This defines what the output format will be.")
+    subparsers = parser.add_subparsers(dest="formatter", metavar="FORMATTER", help="Which formatter to use. This defines what the output format will be. Options: {%(choices)s}")
 
     # parser.add_argument('--format', '-f', choices=formatters.keys(), default='MarkdownNode', )
 
+    compact_parser = functools.partial(subparsers.add_parser, formatter_class=CompactArgparseFormatter)
+
     for k, formatter in formatters.items():
-        formatter.define_parser(subparsers.add_parser(k, aliases=[k.lower(), k.upper(), k.capitalize()]))
+        formatter.define_parser(compact_parser(
+            k,
+            # aliases=[k.lower(), k.upper(), k.capitalize()]
+        ))
 
-
-    parser.epilog = """Formatters:
-- MarkdownText: Outputs markdown using the old text implementation.
-- MarkdownNode: Outputs markdown using the new node implementation.
-- Html: Straight port of `jsmsj/DCE-JSONtoHTML`. Lacking support.
-"""
+#     parser.epilog = """Formatters:
+# - MarkdownText: Outputs markdown using the old text implementation.
+# - MarkdownNode: Outputs markdown using the new node implementation.
+# - Html: Straight port of `jsmsj/DCE-JSONtoHTML`. Lacking support.
+# """
 
     parser.set_defaults(factory=MarkdownNodeWriter)
     parser.set_defaults(func=main)

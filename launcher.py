@@ -34,6 +34,7 @@ def get_parser():
     # Submodules
     subparsers: argparse._SubParsersAction[argparse.ArgumentParser] = parser.add_subparsers(dest="tool", metavar="TOOL") # type: ignore
     subparsers.required = True
+    subparsers.help = "Main tool. Options: {%(choices)s}"
 
     compact_parser = partial(subparsers.add_parser, formatter_class=CompactArgparseFormatter)
 
@@ -42,11 +43,6 @@ def get_parser():
     format_runner.define_parser(compact_parser("format"))
 
     search.define_parser(compact_parser("search"))
-
-    # Usage
-    subparsers_fmt = "{" + ', '.join(subparsers._name_parser_map.keys()) + "}"
-    subparsers.help = f"{subparsers_fmt}"
-    parser.usage = f"{parser.prog} {subparsers_fmt}"
 
     return parser
 

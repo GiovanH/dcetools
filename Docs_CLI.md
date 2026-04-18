@@ -2,15 +2,13 @@
 
 ### `launcher.py`
 
-`launcher.py {validate, format, search}`
-
 Launcher for all the dce-tools tools. Choose a command for TOOL and pass --help for tool-specific help.
 
 ```text
 usage: launcher.py [-h] [--version] TOOL ...
 
 positional arguments:
-  TOOL        {validate, format, search}
+  TOOL        Main tool. Options: {validate, format, search}
 
 options:
   -h, --help  show this help message and exit
@@ -45,23 +43,51 @@ Example usage: `validate "query/*.json" "baseline/*.json"`
 Format json log files into a new output. This new output is written to stdout, so redirect this to a file to capture it. 
 
 ```text
-usage: launcher.py format [-h] [--format {MarkdownNode,MarkdownText}]
-                          [input_files ...]
+usage: launcher.py format [-h] input_files [input_files ...] FORMATTER ...
 
 positional arguments:
-  input_files           Input json files (default: None)
+  input_files  Input json files
+  FORMATTER    Which formatter to use. This defines what the output format
+               will be. Options: {md, mdtext, html}
+
+options:
+  -h, --help   show this help message and exit
+```
+
+### `format md`
+
+```text
+usage: launcher.py format input_files [input_files ...] md [-h]
+                                                           [-f {cb,mdx,ticks,none}]
 
 options:
   -h, --help            show this help message and exit
-  [-f | --format] {MarkdownNode,MarkdownText}
-                        Which formatter to use. This defines what the output
-                        format will be. (default: MarkdownNode)
+  [-f | --format] {cb,mdx,ticks,none}
+                        Fence to use. Customblocks, mdx, ticks, or none.
+                        (default: mdx)
 ```
 
-Formatters:
-- MarkdownText: Outputs markdown using the old text implementation.
-- MarkdownNode: Outputs markdown using the new node implementation.
+### `format mdtext`
 
+```text
+usage: launcher.py format input_files [input_files ...] mdtext
+       [-h] [-f {cb,mdx,ticks,none}]
+
+options:
+  -h, --help            show this help message and exit
+  [-f | --format] {cb,mdx,ticks,none}
+                        Fence to use. Customblocks, mdx, ticks, or none.
+                        (default: mdx)
+```
+
+### `format html`
+
+```text
+usage: launcher.py format input_files [input_files ...] html [-h]
+
+options:
+  -h, --help  show this help message and exit
+```
 
 ### `search`
 

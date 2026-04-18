@@ -1,12 +1,13 @@
+import argparse
 import glob
 import json
 import os
 from unittest import TestCase
 
+from dcetools.formatter.base import DiscordWriter
 from dcetools.formatter.HtmlWriter import HtmlWriter
 from dcetools.formatter.MarkdownNodeWriter import MarkdownNodeWriter
 from dcetools.formatter.MarkdownTextWriter import MarkdownTextWriter
-from dcetools.formatter.base import DiscordWriter
 from dcetools.types import DCEExport
 
 dir_path: str = os.path.dirname(os.path.realpath(__file__))
@@ -23,6 +24,7 @@ class _TestFormatter(TestCase):
     output_name: str
     ext: str
     formatter: type[DiscordWriter]
+    args: list[str] = []
 
     def render(self):
         try:
@@ -31,7 +33,16 @@ class _TestFormatter(TestCase):
         except FileNotFoundError:
             raise
 
-        rendered = '\n'.join(self.formatter(getDocs()).format())
+        formatter = self.formatter(getDocs())
+
+        parser = argparse.ArgumentParser()
+        formatter.define_parser(parser)
+        args = parser.parse_args(self.args)
+        formatter.parse_args(args)
+
+        print(args)
+
+        rendered = '\n'.join(formatter.format())
         with open(f"{dir_path}/{self.output_name}_last.{self.ext}", "w", encoding='utf-8') as fp:
             fp.write(rendered)
 

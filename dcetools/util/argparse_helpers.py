@@ -1,9 +1,19 @@
 import argparse
 
+
 class CompactArgparseFormatter(
    argparse.RawDescriptionHelpFormatter,
    argparse.ArgumentDefaultsHelpFormatter
 ):
+    def format_help(self):
+        return super().format_help()
+
+    def _get_help_string(self, action):
+        if isinstance(action, argparse._SubParsersAction) and not action.help:
+            return "{%(choices)s}"
+
+        return super()._get_help_string(action)
+
     def _format_action_invocation(self, action):
         if not action.option_strings:
             default = self._get_default_metavar_for_positional(action)

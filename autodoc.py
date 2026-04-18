@@ -15,7 +15,7 @@ def print_full_help(parser: ArgumentParser, prefix: str = "") -> None:
     print(f"### `{label}`\n")
     # Print strings as text outside the --help invocation
     if parser.usage:
-        print(f"`{parser.usage}`" + "\n")
+        print(f"`{parser.format_usage()}`" + "\n")
         parser.usage = None
     if parser.description:
         print(parser.description + "\n")

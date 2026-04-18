@@ -14,7 +14,6 @@ import tqdm
 
 memory = joblib.Memory(location='/tmp/cache')
 
-
 class Record(TypedDict):
     content: str
     timestamp: str
@@ -62,10 +61,10 @@ def parse_ts(ts: str) -> datetime:
 
 def validate(query_messages, baseline_messages):
     # baseline_messages: list[Message] = all_messages(baseline_docs)
-    print("Baseline", len(baseline_messages))
+    # print("Baseline", len(baseline_messages))
 
     # query_messages: list[Message] = all_messages(query_docs)
-    print("Query", len(query_messages))
+    # print("Query", len(query_messages))
 
     ref_sorted = sorted(baseline_messages, key=lambda x: x["id"])
     ref_ids = [r["id"] for r in ref_sorted]
@@ -109,9 +108,9 @@ def validate(query_messages, baseline_messages):
                     printcompare(record, ref_sorted=ref_sorted, idx=pos)
                     return False
 
-        print(cid, pos, total_ids, cts)
+        # print(cid, pos, total_ids, cts)
 
-    print("Done")
+    print("OK")
     return True
 
 def main(args):

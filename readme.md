@@ -19,7 +19,9 @@ See [Docs_CLI.md](./Docs_CLI.md) for tool usage and documentation.
 ## Roadmap
 
 - Format: Rewritten HTML formatter
+- Format: Genuine plain text output format?
 - Format: Write output to multiple pages
+- Search: Support for complex queries, usernames, etc
 
 ## Thanks
 
