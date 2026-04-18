@@ -16,6 +16,7 @@ dependencies = [
     "markdown",
     "discord_markdown_ast_parser",
     "jinja2",
+    "requests",
     "joblib"
 ]
 

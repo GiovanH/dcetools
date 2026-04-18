@@ -17,3 +17,6 @@ requirements
 
 venv/
 dist/
+
+*.egg-info/
+tests/*_last*

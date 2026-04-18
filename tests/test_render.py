@@ -1,26 +1,38 @@
+import glob
 import json
 import os
 from unittest import TestCase
 
+from dcetools.formatter.HtmlWriter import HtmlWriter
 from dcetools.formatter.MarkdownNodeWriter import MarkdownNodeWriter
 from dcetools.formatter.MarkdownTextWriter import MarkdownTextWriter
+from dcetools.formatter.base import DiscordWriter
+from dcetools.types import DCEExport
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
+dir_path: str = os.path.dirname(os.path.realpath(__file__))
 
-class TestMarkdownText(TestCase):
-    maxDiff = None
-    def test_render(self):
-        with open(f"{dir_path}/test_data.json", "r") as fp:
-            test_data = json.load(fp)
+def getDocs() -> list[DCEExport]:
+    docs = []
+    for f in glob.glob(f"{dir_path}/data/*.json"):
+        with open(f, "r", encoding='utf-8') as fp:
+            docs.append(json.load(fp))
+    return docs
 
+
+class _TestFormatter(TestCase):
+    output_name: str
+    ext: str
+    formatter: type[DiscordWriter]
+
+    def render(self):
         try:
-            with open(f"{dir_path}/output_text.md", "r") as fp:
+            with open(f"{dir_path}/{self.output_name}.{self.ext}", "r", encoding='utf-8') as fp:
                 known_body = fp.read()
         except FileNotFoundError:
-            known_body = ""
+            raise
 
-        rendered = '\n'.join(MarkdownTextWriter([test_data]).format())
-        with open(f"{dir_path}/output_text_last.md", "w", encoding='utf-8') as fp:
+        rendered = '\n'.join(self.formatter(getDocs()).format())
+        with open(f"{dir_path}/{self.output_name}_last.{self.ext}", "w", encoding='utf-8') as fp:
             fp.write(rendered)
 
         self.assertEqual(
@@ -28,23 +40,23 @@ class TestMarkdownText(TestCase):
             known_body
         )
 
-class TestMarkdownNode(TestCase):
-    maxDiff = None
-    def test_render(self):
-        with open(f"{dir_path}/test_data.json", "r") as fp:
-            test_data = json.load(fp)
+class TestMarkdownText(_TestFormatter):
+    output_name = "output_text"
+    ext = "md"
+    formatter = MarkdownTextWriter
 
-        try:
-            with open(f"{dir_path}/output_node.md", "r") as fp:
-                known_body = fp.read()
-        except FileNotFoundError:
-            known_body = ""
+    def test_render(self): self.render()
 
-        rendered = '\n'.join(MarkdownNodeWriter([test_data]).format())
-        with open(f"{dir_path}/output_node_last.md", "w") as fp:
-            fp.write(rendered)
+class TestMarkdownNode(_TestFormatter):
+    output_name = "output_node"
+    ext = "md"
+    formatter = MarkdownNodeWriter
 
-        self.assertEqual(
-            rendered,
-            known_body
-        )
+    def test_render(self): self.render()
+
+class TestMarkdownHtml(_TestFormatter):
+    output_name = "output_html"
+    ext = "html"
+    formatter = HtmlWriter
+
+    def test_render(self): self.render()

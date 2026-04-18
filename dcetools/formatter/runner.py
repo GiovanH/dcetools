@@ -56,7 +56,7 @@ def define_parser(parser: argparse.ArgumentParser):
     parser.description = "Format json log files into a new output. This new output is written to stdout, so redirect this to a file to capture it. "
     parser.add_argument('input_files', help="Input json files", nargs='+')
 
-    parser.add_argument('-o', '--output', help="Directory to save output files. '-' to write all output to stdout.", default='-')
+    # parser.add_argument('-o', '--output', help="Directory to save output files. '-' to write all output to stdout.", default='-')
 
     subparsers = parser.add_subparsers(dest="formatter", metavar="FORMATTER", help="Which formatter to use. This defines what the output format will be.")
 
